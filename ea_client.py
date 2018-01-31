@@ -6,21 +6,24 @@ Created on Mon Jan 22 19:19:35 2018
 @author: yz
 """
 
+import random
+import threading
+import time
+
 import numpy as np
 import keras
-import random
-import time
-import threading
+
 import datasource
 from fl_client import FederatedClient
 
+
 class ElasticAveragingClient(FederatedClient):
+
     def __init__(self, server_host, server_port, datasource):
         # probability to synchronize. Note: here epoch_per_round ~ 1/p
         self.p = None
         self.e = None   # weight for elasiticity term
         FederatedClient.__init__(self, server_host, server_port, datasource)
-
 
     def on_init(self, *args):
         print('EA on_init')
@@ -32,8 +35,8 @@ class ElasticAveragingClient(FederatedClient):
         def synchronize():
             global_w = self.request_weights()
             local_w = self.local_model.get_weights()
-            diff = [self.e * (w-gw) for w,gw in zip(local_w, global_w)]
-            self.local_model.set_weights([w-d for w,d in zip(local_w, diff)])
+            diff = [self.e * (w-gw) for w, gw in zip(local_w, global_w)]
+            self.local_model.set_weights([w-d for w, d in zip(local_w, diff)])
             self.send_diff(diff)
 
         def train():
@@ -42,15 +45,15 @@ class ElasticAveragingClient(FederatedClient):
                     synchronize()
                 self.local_model.train_one_round()
 
-        threading.Thread(target = train).start()
+        threading.Thread(target=train).start()
 
     def request_weights(self):
-        #TODO
-        pass
+        # TODO
+        raise NotImplementedError()
 
     def send_diff(self, diff):
-        #TODO
-        pass
+        # TODO
+        raise NotImplementedError()
 
 
 if __name__ == "__main__":

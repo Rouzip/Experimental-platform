@@ -6,21 +6,24 @@ Created on Mon Jan 22 19:21:39 2018
 @author: yz
 """
 
-import numpy as np
-import keras
 import random
 import time
 import json
 import pickle
 import codecs
-from keras.models import model_from_json
-from socketIO_client import SocketIO, LoggingNamespace
-from fl_server import obj_to_pickle_string, pickle_string_to_obj
-
-import datasource
 import threading
 
+import numpy as np
+import keras
+from keras.models import model_from_json
+from socketIO_client import SocketIO, LoggingNamespace
+
+from fl_server import obj_to_pickle_string, pickle_string_to_obj
+import datasource
+
+
 class LocalModel(object):
+
     def __init__(self, model_config, data_collected):
         # model_config:
             # 'model': self.global_model.model.to_json(),
@@ -35,8 +38,8 @@ class LocalModel(object):
         # the weights will be initialized on first pull from server
 
         self.model.compile(loss=keras.losses.categorical_crossentropy,
-              optimizer=keras.optimizers.Adadelta(),
-              metrics=['accuracy'])
+                           optimizer=keras.optimizers.Adadelta(),
+                           metrics=['accuracy'])
 
         train_data, test_data, valid_data = data_collected
         self.x_train = np.array([tup[0] for tup in train_data])
@@ -55,14 +58,14 @@ class LocalModel(object):
     # return final weights, train loss, train accuracy
     def train_one_round(self):
         self.model.compile(loss=keras.losses.categorical_crossentropy,
-              optimizer=keras.optimizers.Adadelta(),
-              metrics=['accuracy'])
+                           optimizer=keras.optimizers.Adadelta(),
+                           metrics=['accuracy'])
 
         self.model.fit(self.x_train, self.y_train,
-                  epochs=self.model_config['epoch_per_round'],
-                  batch_size=self.model_config['batch_size'],
-                  verbose=1,
-                  validation_data=(self.x_valid, self.y_valid))
+                       epochs=self.model_config['epoch_per_round'],
+                       batch_size=self.model_config['batch_size'],
+                       verbose=1,
+                       validation_data=(self.x_valid, self.y_valid))
 
         score = self.model.evaluate(self.x_train, self.y_train, verbose=0)
         print('Train loss:', score[0])
@@ -99,7 +102,6 @@ class FederatedClient(object):
         self.sio.emit('client_wake_up')
         self.sio.wait()
 
-    
     ########## Socket Event Handler ##########
     def on_init(self, *args):
         model_config = args[0]
@@ -114,10 +116,10 @@ class FederatedClient(object):
         self.local_model = LocalModel(model_config, fake_data)
         # ready to be dispatched for training
         self.sio.emit('client_ready', {
-                'train_size': self.local_model.x_train.shape[0],
-                'class_distr': my_class_distr  # for debugging, not needed in practice
-            })
-
+            'train_size': self.local_model.x_train.shape[0],
+            # for debugging, not needed in practice
+            'class_distr': my_class_distr
+        })
 
     def register_handles(self):
         ########## Socket IO messaging ##########
@@ -160,7 +162,6 @@ class FederatedClient(object):
 
             self.sio.emit('client_update', resp)
 
-
         def on_stop_and_eval(*args):
             req = args[0]
             if req['weights_format'] == 'pickle':
@@ -174,14 +175,13 @@ class FederatedClient(object):
             }
             self.sio.emit('client_eval', resp)
 
-
         self.sio.on('connect', on_connect)
         self.sio.on('disconnect', on_disconnect)
         self.sio.on('reconnect', on_reconnect)
         self.sio.on('init', lambda *args: self.on_init(*args))
         self.sio.on('request_update', on_request_update)
         self.sio.on('stop_and_eval', on_stop_and_eval)
-   
+
     def intermittently_sleep(self, p=.1, low=10, high=100):
         if (random.random() < p):
             time.sleep(random.randint(low, high))
